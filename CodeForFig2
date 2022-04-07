@@ -1,0 +1,106 @@
+setwd("/Users/zhaoy2/Desktop/Copied_20220309/Added_after_copy/Source_data_and_codes")
+
+# Fig 2a:
+library(maftools)
+
+all.maf <- read.delim("FUSCC.final_analysis_set.txt",sep="\t",header=T)
+all.clin <- read.delim("clin_group.txt",sep="\t",header=T)
+
+head(all.maf$Tumor_Sample_Barcode)
+head(all.clin)
+all.clin$Pathology <- factor(all.clin$Pathology, levels=c("AIS","MIA","LUAD"), labels=c("AIS","MIA","LUAD"))
+all.clin$Pathology
+
+colnames(all.clin)
+all.clin$GGO_group
+
+all.clin$GGO_group <- factor(all.clin$GGO_group, levels=c("Pure_GGO","Subsolid","Solid"))
+#all.clin$Pathological_stage <- factor(all.clin$Pathological_stage, levels=c("AIS","MIA","IA","IB","IIIA"))
+
+all_file <- read.maf(maf=all.maf, clinicalData = all.clin)
+#plotmafSummary(maf=all_file, rmOutlier = T, addStat = "median", dashboard=T, titvRaw = F)
+col=RColorBrewer::brewer.pal(n=8,name="Paired")
+names(col)=c("Frame_Shift_Del","Missense_Mutation","Nonsense_Mutation","Multi_Hit","Frame_Shift_Ins","In_Frame_Ins","Splice_Site","In_Frame_Del")
+fabcolors=RColorBrewer::brewer.pal(n=3,name="Set1")
+names(fabcolors)=c("AIS","MIA","LUAD")
+GGOcolors <- RColorBrewer::brewer.pal(n=3,name="Accent")
+names(GGOcolors) <- c("Pure_GGO","Subsolid","Solid")
+fabcolors_anno=list(Pathology=fabcolors,GGO_group_new=GGOcolors)
+GGO_anno <- all.clin[,c(4,2,3)]
+
+GGO_anno$Pathology <- factor(GGO_anno$Pathology, levels=c("AIS","MIA","LUAD"))
+GGO_anno$GGO_group <- factor(GGO_anno$GGO_group, levels=c("Pure_GGO","Subsolid","Solid"))
+
+oncoplot(maf = all_file, 
+         colors=col,
+         annotationDat = all.clin,
+         clinicalFeatures = c("Pathology","GGO_group"),
+         sortByAnnotation = T,
+         annotationOrder = c("AIS","MIA","LUAD"),
+         annotationColor = fabcolors_anno,
+         genes = c("TP53","EGFR","KRAS","BRAF","ERBB2","STK11","RB1","MET","NF1","MAP2K1","KEAP1","PIK3CA","SMARCA4","RBM10","CDKN2A"),
+         writeMatrix=T,removeNonMutated = F,showTumorSampleBarcodes=F,fontSize=1,top=12,keepGeneOrder = F,GeneOrderSort = F)
+
+# Fig 2b-2e:
+setwd("C:/Users/terry/Desktop/Projects/GGO_WES")
+
+library(ggplot2)
+library(reshape2)
+
+file1 <- read.delim("Driver_and_suppressor_for_fig2.txt", sep="\t", header=T)
+head(file1)
+driver <- file1[file1$Category=="Driver",]
+driver$Gene <- factor(driver$Gene, 
+                      levels=c("Driver_genes","EGFR","KRAS","ERBB2","BRAF","MET","ALK_fusion","RET_fusion","ROS1_fusion"))
+
+driver_m <- melt(driver)
+driver_m$Category <- factor(driver_m$Category,levels=c("Solid","Part_solid","Pure_GGO"))
+colnames(driver_m)[c(3,4)] <- c("Group","Percentage_mutated")
+driver_m
+ggplot(driver_m, aes(x=Gene, y=Percentage_mutated, fill=Group)) + 
+  geom_bar(stat = 'identity', position=position_dodge(0.9), color="black", width=0.8, size=0.2)+
+  scale_fill_brewer(palette = 'Accent')+
+  theme_classic()
+ggsave("Driver_mutation_comparison.pdf",plot=last_plot(), width=8, height=6)
+
+
+tsg <- file1[file1$Category=="TSG",]
+tsg$Gene <- factor(tsg$Gene, 
+                   levels=c("Tumor_suppressor_genes","TP53","RB1","RBM10","STK11","MGA","SMARCA4"))
+head(tsg)
+tsg_m <- melt(tsg)
+colnames(tsg_m)[c(3,4)] <- c("Group","Percentage_mutated")
+ggplot(tsg_m, aes(x=Gene, y=Percentage_mutated, fill=Group)) + 
+  geom_bar(stat = 'identity', position=position_dodge(0.9), color="black", width=0.8, size=0.2)+
+  scale_fill_brewer(palette = 'Accent')+
+  theme_classic()
+ggsave("TSG_mutation_comparison.pdf",plot=last_plot(), width=8, height=6)
+
+file2 <- read.delim("Driver_and_suppressor_for_fig2_pathology.txt", sep="\t", header=T)
+head(file2)
+driver <- file2[file2$Category=="Driver",]
+driver$Gene <- factor(driver$Gene, 
+                      levels=c("Driver_genes","EGFR","KRAS","ERBB2","BRAF","MET","ALK_fusion","RET_fusion","ROS1_fusion"))
+
+driver_m <- melt(driver)
+driver_m$Category <- factor(driver_m$Category,levels=c("Solid","Part_solid","Pure_GGO"))
+colnames(driver_m)[c(3,4)] <- c("Group","Percentage_mutated")
+driver_m
+ggplot(driver_m, aes(x=Gene, y=Percentage_mutated, fill=Group)) + 
+  geom_bar(stat = 'identity', position=position_dodge(0.9), color="black", width=0.8, size=0.2)+
+  scale_fill_brewer(palette = 'Set1')+
+  theme_classic()
+ggsave("Driver_mutation_comparison_pathology.pdf",plot=last_plot(), width=8, height=6)
+
+
+tsg <- file2[file2$Category=="TSG",]
+tsg$Gene <- factor(tsg$Gene, 
+                   levels=c("Tumor_suppressor_genes","TP53","RB1","RBM10","STK11","MGA","SMARCA4"))
+head(tsg)
+tsg_m <- melt(tsg)
+colnames(tsg_m)[c(3,4)] <- c("Group","Percentage_mutated")
+ggplot(tsg_m, aes(x=Gene, y=Percentage_mutated, fill=Group)) + 
+  geom_bar(stat = 'identity', position=position_dodge(0.9), color="black", width=0.8, size=0.2)+
+  scale_fill_brewer(palette = 'Set1')+
+  theme_classic()
+ggsave("TSG_mutation_comparison_pathology.pdf",plot=last_plot(), width=8, height=6)
